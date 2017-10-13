@@ -1,0 +1,12 @@
+.vagrant
+builds
+*.retry
+packer/packer_cache/
+*.hwm
+*.pwd
+*.pwi
+**/.kitchen/*
+inventory_files/benvm*
+.gradle
+.keytab
+.swp

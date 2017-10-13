@@ -1,0 +1,20 @@
+---
+# Variable setup.
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Define ruby_package.
+  set_fact:
+    ruby_package: "{{ __ruby_package }}"
+  when: ruby_package is not defined
+
+# Setup/install tasks.
+- include: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include: setup-Archlinux.yml
+  when: ansible_os_family == 'Archlinux'
+

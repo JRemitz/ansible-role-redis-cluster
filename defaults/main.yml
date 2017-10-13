@@ -1,0 +1,6 @@
+---
+#List of masters within cluster
+redis_master_list: "localhost:6379"
+redis_trib_url: http://download.redis.io/redis-stable/src/redis-trib.rb
+redis_trib_install_dir: /tmp
+redis_master_port: 6379

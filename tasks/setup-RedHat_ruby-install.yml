@@ -1,0 +1,25 @@
+---
+- name: Get ruby-install
+  get_url:
+    url: https://github.com/postmodern/ruby-install/archive/v0.6.1.tar.gz
+    dest: /tmp/
+    mode: 0755
+  register: ruby_zip
+  when: ruby_install.stat.exists == False
+
+- name: Unarchive ruby-install zip file
+  unarchive:
+    src: "{{ item }}"
+    dest: /tmp
+    remote_src: yes
+  with_items:
+    - "{{ ruby_zip.dest }}"
+  when: ruby_zip.dest is defined
+
+- name: Make and install ruby-installer
+  make: 
+    chdir: /tmp/ruby-install-0.6.1
+    target: install
+
+- name: Install Ruby from ruby-installer
+  command: ruby-install --system --latest ruby 

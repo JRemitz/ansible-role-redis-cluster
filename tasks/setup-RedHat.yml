@@ -1,0 +1,49 @@
+---
+- name: Ensure ruby-install dependencies are installed.
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - gcc
+    - bzip2
+
+- name: Check if ruby-install exists already
+  stat:
+    path: /usr/local/bin/ruby-install
+  register: ruby_install
+
+- include: setup-RedHat_ruby-install.yml
+  when: ruby_install.stat.exists == False
+
+- name: Ensure Redis gem is installed
+  gem:
+    name: redis
+    state: latest
+
+- name: Get latest redis-trib.rb for creating the redis cluster
+  get_url:
+    url: "{{ redis_trib_url }}"
+    dest: "{{ redis_trib_install_dir }}"
+    mode: 0755
+  register: redis_trib_rb
+
+- name: Remove prompt from redis-trib.rb for clustering 
+  lineinfile:
+    path: "{{ redis_trib_rb.dest }}"
+    regexp: "(.*)Can I set the above configuration(.*)"
+    state: absent
+  when: redis_trib_rb.dest is defined
+
+- name: Redis-cli - FLUSHALL
+  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} FLUSHALL
+  #command: redis-cli -h {{ ansible_hostname }} -p {{ redis_master_port }} FLUSHALL
+  with_items: "{{ redis_master_list.split(' ') }} "
+
+- name: Redis-cli - CLUSTER RESET SOFT
+  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+
+- name: Run cluster Ruby script
+  shell: "{{ redis_trib_install_dir }}/redis-trib.rb create {{ redis_master_list }} "
+#- name: Reload service daemon
+#  service: "name={{ redis_daemon }} state=reloaded"

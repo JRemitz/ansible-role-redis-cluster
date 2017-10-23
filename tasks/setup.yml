@@ -1,0 +1,18 @@
+---
+- name: Ensure ruby-install dependencies are installed.
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - ruby
+  when: not build_ruby_src
+
+- name: Build Ruby from source
+  import_tasks: build_from_source.yml
+  when: build_ruby_src
+
+- name: Ensure Redis gem is installed
+  gem:
+    name: redis
+    state: present
+

@@ -1,6 +1,13 @@
 ---
+ruby_install_version: 0.6.1
+ruby_install_url: https://github.com/postmodern/ruby-install/archive/v{{ ruby_install_version }}.tar.gz
+ruby_install_dir: /tmp
+
 #List of masters within cluster
 redis_master_list: "localhost:6379"
 redis_trib_url: http://download.redis.io/redis-stable/src/redis-trib.rb
 redis_trib_install_dir: /tmp
 redis_master_port: 6379
+redis_requirepass: ""
+
+build_ruby_src: True

@@ -1,12 +1,8 @@
 ---
-# Variable setup.
-- name: Include OS-specific variables.
-  include_vars: "{{ ansible_os_family }}.yml"
-
-- name: Redis-cli - Get Cluster Status
-  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER INFO | grep cluster_state:fail
-  with_items: "{{ redis_master_list.split(' ') }}"
-  register: clustered_servers
+#- name: Redis-cli - Get Cluster Status
+#  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER INFO | grep cluster_state:fail
+#  with_items: "{{ redis_master_list.split(' ') }}"
+#  register: clustered_servers
 
 # Setup/install tasks.
 - import_tasks: setup.yml
@@ -17,12 +13,18 @@
 #- include: setup-Archlinux.yml
 #  when: ansible_os_family == 'Archlinux'
 
+- name: Check if redis-trib.rb script exists
+  stat:
+    path: "{{ redis_trib_install_dir }}/redis-trib.rb"
+  register: redis_trib_rb_stat
+
 - name: Get latest redis-trib.rb for creating the redis cluster
   get_url:
     url: "{{ redis_trib_url }}"
     dest: "{{ redis_trib_install_dir }}"
     mode: 0755
   register: redis_trib_rb
+  when: redis_trib_rb_stat.stat.exists == False
 
 - name: Remove prompt from redis-trib.rb for clustering 
   lineinfile:
@@ -32,15 +34,16 @@
   when: redis_trib_rb.dest is defined
 
 - name: Redis-cli - FLUSHALL
-  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} FLUSHALL
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} FLUSHALL"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} FLUSHALL
   with_items: "{{ redis_master_list.split(' ') }} "
   changed_when: False
 
 - name: Redis-cli - CLUSTER RESET SOFT
-  command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} CLUSTER RESET SOFT"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
   with_items: "{{ redis_master_list.split(' ') }}"
   changed_when: False
 
 - name: Run cluster Ruby script against all masters
   shell: "{{ redis_trib_install_dir }}/redis-trib.rb create {{ redis_master_list }} "
-  when: clustered_servers | changed

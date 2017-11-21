@@ -45,5 +45,42 @@
   with_items: "{{ redis_master_list.split(' ') }}"
   changed_when: False
 
-- name: Run cluster Ruby script against all masters
-  shell: "{{ redis_trib_install_dir }}/redis-trib.rb create {{ redis_master_list }} "
+- name: Redis-cli - CONFIG SET REQUIREPASS - Remove requirepass if exists
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} -a {{ redis_requirepass }} CONFIG SET REQUIREPASS ''"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+  when: redis_requirepass is defined and redis_requirepass != ""
+  changed_when: False
+  ignore_errors: True
+
+- name: Redis-cli - CONFIG SET REQUIREPASS - Remove masterauth if exists
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} CONFIG SET MASTERAUTH ''"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+  when: redis_requirepass is defined and redis_requirepass != ""
+  changed_when: False
+
+- name: Run cluster Ruby script against all masters - CREATE
+  shell: "{{ redis_trib_install_dir }}/redis-trib.rb create --replicas 1 {{ redis_master_list }} "
+
+- name: Redis-cli - CONFIG SET REQUIREPASS
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} CONFIG SET REQUIREPASS {{ redis_requirepass }}"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+  when: redis_requirepass is defined and redis_requirepass != ""
+  changed_when: False
+
+- name: Redis-cli - CONFIG SET MASTERAUTH
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} -a {{ redis_requirepass }} CONFIG SET MASTERAUTH {{ redis_requirepass }}"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+  when: redis_requirepass is defined and redis_requirepass != ""
+  changed_when: False
+
+- name: Redis-cli - CONFIG REWRITE - After requirepass is set
+  command: "redis-cli -h {{ item.split(':')[0] }} -p {{ item.split(':')[1] }} -a {{ redis_requirepass }} CONFIG REWRITE"
+  #command: redis-cli -h {{ item | regex_replace(':(.*)$','') }} -p {{ redis_master_port }} CLUSTER RESET SOFT
+  with_items: "{{ redis_master_list.split(' ') }}"
+  when: redis_requirepass is defined and redis_requirepass != ""
+  changed_when: False
+
